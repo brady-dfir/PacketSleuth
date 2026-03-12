@@ -6,7 +6,7 @@ A python script that parses PCAP files, summarizes traffic, and flags suspicious
 # Overview
 A python script that parses PCAP files, summarizes traffic, and flags suspicious activity. This tool identifies and extracts per-packet metadata such as source/destination IPs, ports, and protocols. This tool also computes activity summaries and detects port scans, repeated failed attempts, and connection spikes. Results are exported as CSV reports.
 
-# Key Features
+## Key Features
 Identify top talkers by packet and byte counts
 Breakdown by protocol (TCP, UDP, HTTP, DNS)
 Port scan detection
