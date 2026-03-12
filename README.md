@@ -31,7 +31,7 @@ python -m pip install pyshark scapy pandas
 Ensure tshark is installed and available on PATH for packet dissection.
 
 ## How To Run Script
-python LogAnalysisTool.py example_capture.pcap
+python PacketSleuth.py example_capture.pcap
 
 ## Output Files
 report_top_talkers.csv - columns: ip, packets, bytes
