@@ -1,7 +1,7 @@
-# PCAP Analysis Tool
+# PacketSleuth
 
 ## Overview
-A python script that parses PCAP files, summarizes traffic, and flags suspicious activity. This tool identifies and extracts per-packet metadata such as source/destination IPs, ports, and protocols. This tool also computes activity summaries and detects port scans, repeated failed attempts, and connection spikes. Results are exported as CSV reports.
+PacketSleuth is a python script that parses PCAP files, summarizes traffic, and flags suspicious activity. This tool identifies and extracts per-packet metadata such as source/destination IPs, ports, and protocols. This tool also computes activity summaries and detects port scans, repeated failed attempts, and connection spikes. Results are exported as CSV reports.
 
 ## Key Features
 Identify top talkers by packet and byte counts
@@ -87,6 +87,6 @@ Protocol Detectors - SSH brute-force, HTTP credential stuffing detection, or DNS
 Rate Limited Alerts - Group repeated alerts into aggregated incidents to reduce noise.
 
 ## Ownership and Contact Information
-This tool was developed by Brady Peer as a personal project.
+PacketSleuth was developed by Brady Peer as a personal project.
 
 For questions please contact brdypr@gmail.com
