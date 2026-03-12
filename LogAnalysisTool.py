@@ -6,28 +6,27 @@ import pyshark
 from scapy.all import rdpcap, TCP, IP
 import pandas as pd
 
-# Thresholds
+# Detection Thresholds
 PORT_SCAN_PORT_THRESHOLD = 100
 PORT_SCAN_WINDOW_SEC = 60
 FAILED_ATTEMPT_THRESHOLD = 5
 FAILED_ATTEMPT_WINDOW_SEC = 300
 SPIKE_MULTIPLIER = 5
 
-# Helpers
+# Helper function
 def ts_to_dt(ts):
     return datetime.fromtimestamp(float(ts))
 
 # Main analysis using PyShark
 def analyze_pcap(pcap_file):
-    # Aggregation structures
     pkt_count_by_ip = Counter()
     bytes_by_ip = Counter()
     proto_counts = Counter()
-    conn_events = []  # (timestamp, src, dst, sport, dport, proto, flags, length, info)
-    syn_events = defaultdict(list)  # src -> list of (ts, dst, dport)
-    port_scan_candidates = defaultdict(lambda: defaultdict(set))  # src -> dst -> set(ports)
-    failed_attempts = defaultdict(list)  # (src,dst,port) -> list of timestamps
-    per_minute_conn = defaultdict(list)  # src -> list of minute timestamps
+    conn_events = []  # timestamp, src, dst, sport, dport, proto, flags, length, info
+    syn_events = defaultdict(list)  # list of ts, dst, dport
+    port_scan_candidates = defaultdict(lambda: defaultdict(set))
+    failed_attempts = defaultdict(list)  # List of timestamps
+    per_minute_conn = defaultdict(list)  # List of minute timestamps
 
     cap = pyshark.FileCapture(pcap_file, keep_packets=False)
     for pkt in cap:
@@ -44,7 +43,7 @@ def analyze_pcap(pcap_file):
 
             sport = getattr(pkt, 'tcp', None) and getattr(pkt.tcp, 'srcport', None)
             dport = getattr(pkt, 'tcp', None) and getattr(pkt.tcp, 'dstport', None)
-            # record connection-like events for TCP
+            # Records connection events for TCP
             flags = None
             if hasattr(pkt, 'tcp'):
                 flags = pkt.tcp.flags
@@ -53,7 +52,7 @@ def analyze_pcap(pcap_file):
                 if '0x0002' in str(flags) or 'SYN' in str(flags):
                     syn_events[src].append((ts, dst, int(dport) if dport else None))
                     port_scan_candidates[src][dst].add(int(dport) if dport else None)
-                # RST or SYN-ACK missing heuristics: treat RST as failure
+                # RST or SYN-ACK missing, treat RST as failure
                 if 'RST' in str(flags) or '0x0004' in str(flags):
                     failed_attempts[(src, dst, dport)].append(ts)
             # HTTP auth failures
@@ -61,16 +60,15 @@ def analyze_pcap(pcap_file):
                 code = int(pkt.http.response_code)
                 if code in (401, 403):
                     failed_attempts[(src, dst, dport)].append(ts)
-            # DNS queries count as UDP typically
+            # DNS queries count as UDP
             if proto == 'DNS':
                 proto_counts['DNS'] += 1
 
-            # per-minute connection timestamp for spike detection
+            # Per-minute connection timestamps for spike detection
             minute_ts = datetime.fromtimestamp(ts).replace(second=0, microsecond=0)
             per_minute_conn[src].append(minute_ts)
 
         except Exception:
-            # ignore malformed packets or missing fields
             continue
     cap.close()
 
@@ -79,7 +77,7 @@ def analyze_pcap(pcap_file):
     port_scan_alerts = []
     for src, dst_map in port_scan_candidates.items():
         for dst, ports in dst_map.items():
-            # count distinct ports in window (we used entire capture; refine by time window if needed)
+            # Counts distinct ports
             if len(ports) >= PORT_SCAN_PORT_THRESHOLD:
                 port_scan_alerts.append({
                     'type': 'port_scan',
@@ -96,7 +94,6 @@ def analyze_pcap(pcap_file):
         dq = deque()
         for t in times_sorted:
             dq.append(t)
-            # pop older than window
             while dq and (t - dq[0]) > FAILED_ATTEMPT_WINDOW_SEC:
                 dq.popleft()
             if len(dq) >= FAILED_ATTEMPT_THRESHOLD:
